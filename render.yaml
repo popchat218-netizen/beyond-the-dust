@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: beyond-the-dust
+    runtime: static
+    buildCommand: echo "Serving browser game"
+    staticPublishPath: ./web
+    autoDeployTrigger: commit
