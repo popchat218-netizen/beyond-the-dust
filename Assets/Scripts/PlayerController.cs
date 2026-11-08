@@ -28,7 +28,8 @@ public sealed class PlayerController : MonoBehaviour
         if (view == null && Camera.main != null)
             view = Camera.main.transform;
 
-        if (DesertGame.Instance == null || DesertGame.Instance.IsDead || DesertGame.Instance.IsComplete)
+        if (DesertGame.Instance == null || DesertGame.Instance.IsPaused ||
+            DesertGame.Instance.IsDead || DesertGame.Instance.IsComplete)
         {
             IsSprinting = false;
             return;

@@ -12,9 +12,11 @@ public sealed class DesertGame : MonoBehaviour
     public bool HasPurifier { get; private set; }
     public bool IsComplete { get; private set; }
     public bool IsDead { get; private set; }
+    public bool IsPaused { get; private set; }
     public Transform Player { get; private set; }
 
-    private float survivalClock;
+    private string statusMessage;
+    private float statusMessageTimer;
     private GUIStyle titleStyle;
     private GUIStyle bodyStyle;
     private GUIStyle smallStyle;
@@ -34,13 +36,27 @@ public sealed class DesertGame : MonoBehaviour
 
     private void Start()
     {
+        Time.timeScale = 1f;
         RuntimeWorldBuilder.Build(this);
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
+    private void OnDestroy()
+    {
+        Time.timeScale = 1f;
+    }
+
     private void Update()
     {
+        if (!IsDead && !IsComplete && Input.GetKeyDown(KeyCode.P))
+            SetPaused(!IsPaused);
+
+        if (IsPaused)
+            return;
+
+        statusMessageTimer = Mathf.Max(0f, statusMessageTimer - Time.unscaledDeltaTime);
+
         if (IsDead || IsComplete)
         {
             if (Input.GetKeyDown(KeyCode.R))
@@ -50,7 +66,6 @@ public sealed class DesertGame : MonoBehaviour
             return;
         }
 
-        survivalClock += Time.deltaTime;
         float drain = HasPurifier ? 0.22f : 0.48f;
         if (PlayerController.IsSprinting)
             drain *= 1.7f;
@@ -84,19 +99,34 @@ public sealed class DesertGame : MonoBehaviour
                 Water += pickup.Amount;
                 break;
             case WorldPickup.PickupKind.Beacon:
+                if (!HasPurifier)
+                {
+                    Notify("SIGNAL JAMMED  /  BUILD THE PURIFIER FIRST");
+                    return;
+                }
                 IsComplete = true;
                 break;
         }
 
         pickup.Collect();
+        if (pickup.Kind == WorldPickup.PickupKind.Salvage)
+            Notify("SALVAGE RECOVERED  /  +" + pickup.Amount);
+        else if (pickup.Kind == WorldPickup.PickupKind.Water)
+            Notify("WATER RECOVERED  /  +" + pickup.Amount);
+        else
+            Notify("RELAY LOCKED  /  SIGNAL FOUND");
     }
 
     public void Drink()
     {
         if (Water <= 0 || Hydration >= 100f)
+        {
+            Notify(Water <= 0 ? "NO WATER IN PACK" : "HYDRATION ALREADY FULL");
             return;
+        }
         Water--;
         Hydration = Mathf.Min(100f, Hydration + 34f);
+        Notify("DRANK WATER  /  HYDRATION RESTORED");
     }
 
     public void TakeDamage(float amount)
@@ -110,11 +140,40 @@ public sealed class DesertGame : MonoBehaviour
 
     private void CraftPurifier()
     {
-        if (HasPurifier || Salvage < 5)
+        if (HasPurifier)
+        {
+            Notify("PURIFIER ALREADY ONLINE");
             return;
+        }
+        if (Salvage < 5)
+        {
+            Notify("NEED 5 SALVAGE TO BUILD THE PURIFIER");
+            return;
+        }
         Salvage -= 5;
         HasPurifier = true;
         Hydration = Mathf.Min(100f, Hydration + 18f);
+        Notify("PURIFIER ONLINE  /  FIND THE VIOLET SIGNAL");
+    }
+
+    private void Notify(string message)
+    {
+        statusMessage = message;
+        statusMessageTimer = 2.5f;
+    }
+
+    private void SetPaused(bool paused)
+    {
+        IsPaused = paused;
+        Time.timeScale = paused ? 0f : 1f;
+        Cursor.lockState = paused ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible = paused;
+    }
+
+    private void RestartRun()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     private void OnGUI()
@@ -131,6 +190,12 @@ public sealed class DesertGame : MonoBehaviour
         DrawMeter(42f, 115f, 224f, 13f, Hydration / 100f, new Color(0.25f, 0.75f, 0.88f), "HYDRATION");
         GUI.Label(new Rect(278f, 65f, 50f, 24f), Mathf.CeilToInt(Health) + "%", smallStyle);
         GUI.Label(new Rect(278f, 109f, 50f, 24f), Mathf.CeilToInt(Hydration) + "%", smallStyle);
+
+        GUI.color = new Color(0.04f, 0.055f, 0.075f, 0.78f);
+        GUI.Box(new Rect(24f, 186f, 315f, 72f), GUIContent.none, panelStyle);
+        GUI.color = Color.white;
+        GUI.Label(new Rect(42f, 194f, 280f, 20f), CurrentObjectiveTitle(), bodyStyle);
+        GUI.Label(new Rect(42f, 220f, 280f, 25f), CurrentObjectiveDetail(), smallStyle);
 
         GUI.color = new Color(0.04f, 0.055f, 0.075f, 0.78f);
         GUI.Box(new Rect(width - 255f, 24f, 231f, 105f), GUIContent.none, panelStyle);
@@ -150,9 +215,29 @@ public sealed class DesertGame : MonoBehaviour
             GUI.Label(new Rect(width * 0.5f - 175f, height - 68f, 350f, 28f),
                 "PURIFIER ONLINE   ·   HYDRATION LOSS REDUCED", promptStyle);
 
-        GUI.Label(new Rect(28f, height - 36f, 500f, 24f), "WASD MOVE     SHIFT SPRINT     E INTERACT     ESC RELEASE MOUSE", smallStyle);
+        GUI.Label(new Rect(28f, height - 36f, 500f, 24f), "WASD MOVE  SPACE JUMP  SHIFT SPRINT  E INTERACT  P PAUSE", smallStyle);
         DrawInteractionPrompt(width, height);
+        if (statusMessageTimer > 0f && !IsPaused)
+            GUI.Label(new Rect(width * 0.5f - 260f, 150f, 520f, 26f), statusMessage, promptStyle);
         DrawEndCard(width, height);
+    }
+
+    private string CurrentObjectiveTitle()
+    {
+        if (Salvage < 5)
+            return "01   RECOVER SALVAGE";
+        if (!HasPurifier)
+            return "02   BUILD THE PURIFIER";
+        return "03   REACH THE SIGNAL";
+    }
+
+    private string CurrentObjectiveDetail()
+    {
+        if (Salvage < 5)
+            return "Search the wrecks  /  " + Salvage + " of 5 recovered";
+        if (!HasPurifier)
+            return "Press C to craft  /  purifier stabilizes the relay";
+        return "Follow the violet mast north  /  press E to transmit";
     }
 
     private void DrawMeter(float x, float y, float meterWidth, float meterHeight, float value, Color fill, string label)
@@ -174,9 +259,10 @@ public sealed class DesertGame : MonoBehaviour
             WorldPickup pickup = hit.collider.GetComponentInParent<WorldPickup>();
             if (pickup != null && !pickup.IsCollected)
             {
-                string action = pickup.Kind == WorldPickup.PickupKind.Beacon ? "ACTIVATE SIGNAL" :
+                string action = pickup.Kind == WorldPickup.PickupKind.Beacon
+                    ? HasPurifier ? "ACTIVATE SIGNAL" : "SIGNAL JAMMED  /  PURIFIER REQUIRED" :
                     pickup.Kind == WorldPickup.PickupKind.Water ? "SCAVENGE WATER" : "SCAVENGE SALVAGE";
-                GUI.Label(new Rect(width * 0.5f - 150f, height * 0.5f + 26f, 300f, 28f), "[ E ]   " + action, promptStyle);
+                GUI.Label(new Rect(width * 0.5f - 190f, height * 0.5f + 26f, 380f, 28f), "[ E ]   " + action, promptStyle);
             }
             else if (pickup == null && hit.collider.GetComponentInParent<OasisSource>() != null)
             {
@@ -188,6 +274,19 @@ public sealed class DesertGame : MonoBehaviour
 
     private void DrawEndCard(float width, float height)
     {
+        if (IsPaused)
+        {
+            GUI.color = new Color(0.015f, 0.025f, 0.035f, 0.82f);
+            GUI.DrawTexture(new Rect(0f, 0f, width, height), whiteTexture);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(width * 0.5f - 200f, height * 0.5f - 90f, 400f, 50f), "FIELD PAUSED", titleStyle);
+            GUI.Label(new Rect(width * 0.5f - 190f, height * 0.5f - 30f, 380f, 28f), "Take a breath. The basin can wait.", bodyStyle);
+            if (GUI.Button(new Rect(width * 0.5f - 110f, height * 0.5f + 20f, 220f, 38f), "RESUME  /  P"))
+                SetPaused(false);
+            if (GUI.Button(new Rect(width * 0.5f - 110f, height * 0.5f + 68f, 220f, 34f), "RESTART RUN"))
+                RestartRun();
+            return;
+        }
         if (!IsComplete && !IsDead)
             return;
 

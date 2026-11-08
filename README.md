@@ -12,9 +12,11 @@ Open the project folder in **Unity 2022.3 LTS or newer** and press Play from `As
 | --- | --- |
 | `W A S D` | Move |
 | Mouse | Look |
+| `Space` | Jump |
 | `Shift` | Sprint |
 | `E` | Scavenge or drink from a nearby source |
 | `C` | Craft a water filter when you have enough salvage |
+| `P` | Pause or resume |
 | `Esc` | Release the mouse |
 
 Click the game view to capture the mouse again. The current slice is a self-contained, code-built environment, so it has no external art or package dependencies.
@@ -25,7 +27,8 @@ Click the game view to capture the mouse again. The current slice is a self-cont
 - **Survive:** Hydration drains over time. Sprinting accelerates the drain, and the sun keeps the pressure on.
 - **Craft:** Collect 5 salvage and press `C` to assemble the purifier. It slows dehydration and restores a little water.
 - **Watch the ridge:** A sandstalker patrols the basin. Keep your distance; it will pursue and strike if you let it close.
-- **Reach the beacon:** Find the violet signal mast to complete the run.
+- **Reach the beacon:** Find the violet signal mast and transmit after the purifier is online.
+- **Pause the run:** Press `P` to pause, resume, or restart from the field menu.
 
 ## Project layout
 
