@@ -8,9 +8,9 @@ You wake beyond the old trade road with a failing water filter, a handful of sal
 
 ### In a browser
 
-Open `web/index.html` to play the browser edition, or deploy the repository to Render with the included `render.yaml`. It runs as a static site and does not need Unity installed.
+Open `web/index.html` to play the browser edition, or deploy the repository to Render with the included `render.yaml`. It is a third-person 3D browser game with a procedural survivor, sandstalker, dune basin, wreckage, and signal mast. It does not need Unity installed.
 
-Move with `W A S D` or the on-screen pad. Walk up to pale wreckage and amber supply caches and press `E` to collect them. Press `E` again to drink when no item is nearby. Collect 5 salvage, press `C` to build the purifier, and reach the violet signal mast to transmit. Avoid the sandstalker and keep your hydration above zero. Press `P` to pause.
+Move with `W A S D` or the on-screen pad. Drag the mouse to look around. Walk up to turquoise wreckage and amber water canisters and press `E` to collect them. Press `E` again to drink when no item is nearby. Collect 5 salvage, press `C` to build the purifier, and reach the violet signal mast to transmit. Avoid the sandstalker and keep your hydration above zero. Press `P` to pause.
 
 ### In Unity
 
